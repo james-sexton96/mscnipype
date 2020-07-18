@@ -1,5 +1,5 @@
 # mscnipype
-This repository hosts the Nipype (Python) scripted pipeline used to preprocess resting-state fMRI data. This pipeline incorporates the following packages:
+This repository hosts the [Nipype](https://nipype.readthedocs.io/en/latest/) (Gorgolewski et al., 2011) scripted pipeline used to preprocess resting-state fMRI data. This pipeline incorporates the following packages:
 
 [FMRIB Software Library (FSL)](https://fsl.fmrib.ox.ac.uk/fsl/fslwiki/) (Smith et al., 2004; Woolrich et al., 2009)
 
