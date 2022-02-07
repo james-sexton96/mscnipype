@@ -27,8 +27,8 @@ Set defaults for FSL outputs - should be nii.gz formatting for interoperability 
 fsl.FSLCommand.set_default_output_type('NIFTI_GZ')
 
 experiment_dir = '/path/to/outputs'
-output_dir = 'datasink'  # subdirectory name for datasink
-working_dir = 'workingdir'  # subdirectory name for working directory (saving intermediate steps)
+output_directory = 'datasink'  # subdirectory name for datasink
+working_directory = 'workingdir'  # subdirectory name for working directory (saving intermediate steps)
 
 # list of subject identifiers, input your subject numbers.
 subject_list = ['01', '02', '03']  # is your iterable list detailing each subject number
@@ -37,15 +37,28 @@ subject_list = ['01', '02', '03']  # is your iterable list detailing each subjec
 ses_list = ['1', '2']  # is your iterable list identifying each session id number
 
 # use this to specify the formatting of your input file path names - this is the BIDS standard format c. 2019
-anat_file = opj('sub-ID{subject_id}', 'ses-{ses}', 'anat', 'sub-ID{subject_id}_ses-{ses}*.nii.gz')
-func_file = opj('sub-ID{subject_id}', 'ses-{ses}', 'func', 'sub-ID{subject_id}_ses-{ses}*.nii.gz')
+anatomical_filename = opj('sub-ID{subject_id}', 'ses-{ses}', 'anat', 'sub-ID{subject_id}_ses-{ses}*.nii.gz')
+functional_filename = opj('sub-ID{subject_id}', 'ses-{ses}', 'func', 'sub-ID{subject_id}_ses-{ses}*.nii.gz')
 
 input_dir = 'Path/To/BIDS/format/'
 
 
-def preproc_workflow(input_dir, anat_file, func_file, scan_size=None, bet_frac=None, subcortical_gm_mask=None):
+def preproc_workflow(input_dir, output_dir, anat_file, func_file, scan_size=477, bet_frac=0.37):
+    """
+    The preprocessing workflow used in the preparation of the psilocybin vs escitalopram rsFMRI scans.
+    Workflows and notes are defined throughout. Inputs are designed to be general and masks/default MNI space is provided
+
+    :param input_dir: The input file directory containing all scans in BIDS format
+    :param output_dir: The output file directory
+    :param anat_file: The format of the anatomical scan within the input directory
+    :param func_file: The format of the functional scan within the input directory
+    :param scan_size: The length of the scan by number of images, most 10 minutes scans are around 400-500 depending
+    upon scanner defaults and parameters - confirm by looking at your data
+    :param bet_frac: brain extraction fractional intensity threshold
+    :return: the preprocessing workflow
+    """
     preproc = Workflow(name='preproc')
-    preproc.base_dir = '/Users/James/Desktop/preproc/'
+    preproc.base_dir = output_dir
 
     # Infosource - a function free node to iterate over the list of subject names
     infosource = Node(IdentityInterface(fields=['subject_id', 'ses']), name="infosource")
@@ -139,7 +152,7 @@ def preproc_workflow(input_dir, anat_file, func_file, scan_size=None, bet_frac=N
     coreg.connect([(seg, f2s_c3d, [('restored_image', 'reference_file')])])
 
     # Functional to structural registration via ANTs non-linear registration
-    reg = Node(Registration(fixed_image='MNI152_T1_2mm_brain.nii.gz',
+    reg = Node(Registration(fixed_image='default_images/MNI152_T1_2mm_brain.nii.gz',
                             transforms=['Affine', 'SyN'],
                             transform_parameters=[(0.1,), (0.1, 3.0, 0.0)],
                             number_of_iterations=[[1500, 1000, 1000], [100, 70, 50, 20]],
@@ -166,7 +179,7 @@ def preproc_workflow(input_dir, anat_file, func_file, scan_size=None, bet_frac=N
     coreg.connect([(reg, merge1, [('composite_transform', 'in1')])])
 
     # warp the functional images into MNI space using the transforms from FLIRT and SYN
-    warp = Node(ApplyTransforms(reference_image='/usr/local/fsl/data/standard/MNI152_T1_2mm_brain.nii.gz',
+    warp = Node(ApplyTransforms(reference_image='default_images/MNI152_T1_2mm_brain.nii.gz',
                                 input_image_type=3), name='warp')
     coreg.connect([(moco, warp, [('out_file', 'input_image')])])
     coreg.connect([(merge1, warp, [('out', 'transforms')])])
@@ -229,7 +242,7 @@ def preproc_workflow(input_dir, anat_file, func_file, scan_size=None, bet_frac=N
 
     # subtract subcortical GM from the CSF mask
     subcortgm = Node(BinaryMaths(operation='sub',
-                                 operand_file=subcortical_gm_mask,
+                                 operand_file='default_images/subcortical_gm_mask_bin.nii.gz',
                                  output_type='NIFTI_GZ',
                                  args='-bin'), name='subcortgm')
     regressors.connect([(regseg, subcortgm, [(('tissue_class_files', pickindex, 0), 'in_file')])])
@@ -260,7 +273,7 @@ def preproc_workflow(input_dir, anat_file, func_file, scan_size=None, bet_frac=N
 
     # subtract subcortical gm
     subcortgm2 = Node(BinaryMaths(operation='sub',
-                                  operand_file=subcortical_gm_mask,
+                                  operand_file='default_images/subcortical_gm_mask_bin.nii.gz',
                                   output_type='NIFTI_GZ',
                                   args='-bin'), name='subcortgm2')
     regressors.connect([(regseg, subcortgm2, [(('tissue_class_files', pickindex, 2), 'in_file')])])
@@ -315,7 +328,7 @@ def preproc_workflow(input_dir, anat_file, func_file, scan_size=None, bet_frac=N
     clean.connect([(mask, dilf, [('mask_file', 'in_file')])])
     preproc.connect([(scrub, clean, [('remean2.out_file', 'mask.in_file')])])
 
-    fill = Node(MaskTool(in_file='MNI152_T1_2mm_brain_mask.nii.gz',
+    fill = Node(MaskTool(in_file='default_images/MNI152_T1_2mm_brain.nii.gz',
                          fill_holes=True,
                          outputtype='NIFTI_GZ'), name='fill')
 
