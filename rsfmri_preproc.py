@@ -26,30 +26,16 @@ Set defaults for FSL outputs - should be nii.gz formatting for interoperability 
 
 fsl.FSLCommand.set_default_output_type('NIFTI_GZ')
 
-experiment_dir = '/path/to/outputs'
-output_directory = 'datasink'  # subdirectory name for datasink
-working_directory = 'workingdir'  # subdirectory name for working directory (saving intermediate steps)
 
-# list of subject identifiers, input your subject numbers.
-subject_list = ['01', '02', '03']  # is your iterable list detailing each subject number
-
-# list of session identifiers
-ses_list = ['1', '2']  # is your iterable list identifying each session id number
-
-# use this to specify the formatting of your input file path names - this is the BIDS standard format c. 2019
-anatomical_filename = opj('sub-ID{subject_id}', 'ses-{ses}', 'anat', 'sub-ID{subject_id}_ses-{ses}*.nii.gz')
-functional_filename = opj('sub-ID{subject_id}', 'ses-{ses}', 'func', 'sub-ID{subject_id}_ses-{ses}*.nii.gz')
-
-input_dir = 'Path/To/BIDS/format/'
-
-
-def preproc_workflow(input_dir, output_dir, anat_file, func_file, scan_size=477, bet_frac=0.37):
+def preproc_workflow(input_dir, output_dir, subject_list, ses_list, anat_file, func_file, scan_size=477, bet_frac=0.37):
     """
     The preprocessing workflow used in the preparation of the psilocybin vs escitalopram rsFMRI scans.
     Workflows and notes are defined throughout. Inputs are designed to be general and masks/default MNI space is provided
 
     :param input_dir: The input file directory containing all scans in BIDS format
     :param output_dir: The output file directory
+    :param subject_list: a list of subject numbers
+    :param ses_list: a list of scan numbers (session numbers)
     :param anat_file: The format of the anatomical scan within the input directory
     :param func_file: The format of the functional scan within the input directory
     :param scan_size: The length of the scan by number of images, most 10 minutes scans are around 400-500 depending
@@ -71,7 +57,7 @@ def preproc_workflow(input_dir, output_dir, anat_file, func_file, scan_size=477,
     selectfiles = Node(SelectFiles(templates, base_directory=input_dir), name="selectfiles")
 
     # Datasink - creates output folder for important outputs
-    datasink = Node(DataSink(base_directory=experiment_dir,
+    datasink = Node(DataSink(base_directory=output_dir,
                              container=output_dir),
                     name="datasink")
 
@@ -393,5 +379,3 @@ def preproc_workflow(input_dir, output_dir, anat_file, func_file, scan_size=477,
     preproc.write_graph(graph2use='colored', format='png', simple_form=True)
 
     return preproc
-
-
