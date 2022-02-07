@@ -375,7 +375,23 @@ def preproc_workflow(input_dir, output_dir, subject_list, ses_list, anat_file, f
     preproc.connect([(regressors, clean, [('localwm_bpf_dt.out_file', 'clean_rs.orthogonalize_dset')])])
     clean.connect([(remean, clean_rs, [('out_file', 'in_file')])])
 
-    preproc.write_graph(graph2use='flat', format='png', simple_form=True)
-    preproc.write_graph(graph2use='colored', format='png', simple_form=True)
+    '''
+    Write graphical output detailing the workflows and nodes 
+    '''
+
+    fproc.write_graph(graph2use='flat', format='png', simple_form=True, dotfilename='./fproc.dot')
+    fproc.write_graph(graph2use='colored', format='png', simple_form=True, dotfilename='./fproc_color.dot')
+
+    coreg.write_graph(graph2use='flat', format='png', simple_form=True, dotfilename='./coreg.dot')
+    coreg.write_graph(graph2use='colored', format='png', simple_form=True, dotfilename='./coreg_color.dot')
+
+    scrub.write_graph(graph2use='flat', format='png', simple_form=True, dotfilename='./scrub.dot')
+    scrub.write_graph(graph2use='colored', format='png', simple_form=True, dotfilename='./scrub_color.dot')
+
+    regressors.write_graph(graph2use='flat', format='png', simple_form=True, dotfilename='./reg.dot')
+    regressors.write_graph(graph2use='colored', format='png', simple_form=True, dotfilename='./reg_color.dot')
+
+    preproc.write_graph(graph2use='flat', format='png', simple_form=True, dotfilename='./preproc.dot')
+    preproc.write_graph(graph2use='colored', format='png', simple_form=True, dotfilename='./preproc_color.dot')
 
     return preproc
